@@ -313,12 +313,12 @@ namespace MILLEC
             
             Unsafe.SkipInit(out FreeSlot newFreeSlot);
 
+            bitInterfacer.Clear();
+            
             if (newCount == 0)
             {
                 goto Empty;
             }
-            
-            bitInterfacer.Clear();
             
             if (index == HighestKnownIndex)
             {
@@ -337,22 +337,41 @@ namespace MILLEC
             // We will set the FirstFreeSlot field to current index.
             newFreeSlot.Next = index;
             
-            WriteFreeSlot:
             FirstFreeSlot = newFreeSlot;
             return;
             
             DecrementHighestKnown: // If we are deleting the last item, just decrement the HighestKnownIndex.
-            HighestKnownIndex--;
+            HighestKnownIndex = index - 1;
             return;
             
             Empty:
-            newFreeSlot.Next = NO_NEXT_SLOT_VALUE;
-            HighestKnownIndex = DEFAULT_HIGHEST_KNOWN_INDEX;
-            goto WriteFreeSlot;
+            Empty(ref this);
+            return;
+            
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            void Empty(ref MILLEC<T> @this)
+            {
+                // We already clear set bit via bitInterfacer.Clear();
+                // At this point, the BitVectorArr is guaranteed to be all cleared.
+                #if DEBUG
+
+                foreach (var bitVector in @this.BitVectorsArr)
+                {
+                    if (bitVector != 0)
+                    {
+                        throw new Exception($"nameof{bitVector} not cleared!");
+                    }
+                }
+                
+                #endif
+                @this.Clear(false);
+            }
         }
 
-        public void Clear()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Clear(bool clearBitVectors = true)
         {
+            FirstFreeSlot = new FreeSlot();
             Count = 0;
             HighestKnownIndex = DEFAULT_HIGHEST_KNOWN_INDEX;
             BitVectorsArr.AsSpan().Clear();
