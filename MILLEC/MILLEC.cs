@@ -78,8 +78,8 @@ namespace MILLEC
             
             // TODO: Use DivRem intrinsic
             var (quotient, remainder) = Math.DivRem(countOfT, BYTE_BIT_COUNT);
-
-            var size = (remainder == 0) ? quotient : quotient + BYTE_BIT_COUNT;
+            
+            var size = (remainder == 0) ? quotient : quotient + 1;
             
             // Byte is unmanaged, and therefore will always be pinned
             // We want it to be zero-initialized, since a set bit of 1 indicates that a slot is not empty.
