@@ -32,6 +32,9 @@ namespace MILLEC
 
         public int ItemsCount => Count;
 
+        // Works for initial values too! -1 + 1 - 0 = 0
+        public int FreeSlotsCount => HighestKnownIndex + 1 - Count;
+
         private const int ALIGNMENT = 64, NO_NEXT_SLOT_VALUE = -1, DEFAULT_HIGHEST_KNOWN_INDEX = -1;
 
         // Allow skipInit to be constant-folded
