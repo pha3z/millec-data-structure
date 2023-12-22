@@ -247,7 +247,7 @@ namespace MILLEC
             oldBitArray.AsSpan().CopyTo(newBitArray);
             
             // Write the item to writeIndex. Free slots are guaranteed to be exhausted if a resize is required.
-            Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(newArr), writeIndex) = item;
+            new ItemsArrayInterfacer(newArr)[writeIndex] = item;
             
             // Remember to set its corresponding bit.
             new BitInterfacer(new BitVectorsArrayInterfacer(newBitArray), writeIndex).Set();
