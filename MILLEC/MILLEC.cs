@@ -150,6 +150,23 @@ namespace MILLEC
             {
                 get => ref Unsafe.Add(ref FirstItem, index);
             }
+
+            public ref T GetLastSlotOffsetByOne(T[] itemsArr)
+            {
+                return ref this[itemsArr.Length];
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public ref T GetFirstFreeOrNewSlot(FreeSlot firstFreeSlotFieldValue, ref int newSlotWriteIndex, out bool isNewSlot)
+            {
+                var next = firstFreeSlotFieldValue.Next;
+
+                isNewSlot = next == -1;
+                
+                newSlotWriteIndex = isNewSlot ? newSlotWriteIndex : next;
+
+                return ref this[newSlotWriteIndex];
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -190,7 +207,7 @@ namespace MILLEC
             }
         }
 
-        private struct FreeSlot
+        internal struct FreeSlot
         {
             public int Next;
 
@@ -263,46 +280,69 @@ namespace MILLEC
             var itemsInterfacer = new ItemsArrayInterfacer(itemsArr);
 
             var firstFreeSlot = FirstFreeSlot;
+
+            // ref var currentFreeSlot = ref firstFreeSlot.GetNextFreeSlot(itemsInterfacer);
+            //
+            // ref var writeSlot = ref Unsafe.NullRef<T>();
+            //
+            // if (Unsafe.IsNullRef(ref currentFreeSlot))
+            // {
+            //     Debug.Assert(HighestKnownIndex == writeIndex - 1);
+            //     
+            //     // Regardless of need to resize, set HighestKnownIndex to be writeIndex
+            //     HighestKnownIndex = writeIndex;
+            //     
+            //     // This pattern elide bounds.
+            //     if (writeIndex < itemsArr.Length)
+            //     {
+            //         writeSlot = ref itemsArr[writeIndex];
+            //     }
+            //
+            //     else
+            //     {
+            //         ResizeAdd(item);
+            //         return;
+            //     }
+            // }
+            //
+            // else
+            // {
+            //     // Write value of currentFreeSlot to the field
+            //     FirstFreeSlot = currentFreeSlot;
+            //     
+            //     writeSlot = ref currentFreeSlot.ReinterpretAsItem();
+            //
+            //     writeIndex = firstFreeSlot.Next;
+            // }
+            //
+            // writeSlot = item;
+            //
+            // var bitInterfacer = new BitInterfacer(new BitVectorsArrayInterfacer(BitVectorsArr), writeIndex);
+            //
+            // bitInterfacer.Set();
             
-            ref var currentFreeSlot = ref firstFreeSlot.GetNextFreeSlot(itemsInterfacer);
+            ref var slot = ref itemsInterfacer.GetFirstFreeOrNewSlot(firstFreeSlot, ref writeIndex, out var isNewSlot);
 
-            ref var writeSlot = ref Unsafe.NullRef<T>();
-
-            if (Unsafe.IsNullRef(ref currentFreeSlot))
+            if (isNewSlot)
             {
-                Debug.Assert(HighestKnownIndex == writeIndex - 1);
-                
                 // Regardless of need to resize, set HighestKnownIndex to be writeIndex
+                Debug.Assert(writeIndex == HighestKnownIndex + 1);
                 HighestKnownIndex = writeIndex;
                 
-                // This pattern elide bounds.
                 if (writeIndex < itemsArr.Length)
                 {
-                    writeSlot = ref itemsArr[writeIndex];
+                    goto WriteToSlotAndSetCorrespondingBit;
                 }
 
-                else
-                {
-                    ResizeAdd(item);
-                    return;
-                }
+                ResizeAdd(item);
+                return;
             }
 
-            else
-            {
-                // Write value of currentFreeSlot to the field
-                FirstFreeSlot = currentFreeSlot;
-                
-                writeSlot = ref currentFreeSlot.ReinterpretAsItem();
-
-                writeIndex = firstFreeSlot.Next;
-            }
+            FirstFreeSlot = FreeSlot.ReinterpretItemAsFreeSlot(ref slot);
             
-            writeSlot = item;
-            
-            var bitInterfacer = new BitInterfacer(new BitVectorsArrayInterfacer(BitVectorsArr), writeIndex);
-            
-            bitInterfacer.Set();
+            WriteToSlotAndSetCorrespondingBit:
+            slot = item;
+            new BitInterfacer(new BitVectorsArrayInterfacer(BitVectorsArr), writeIndex).Set();
         }
 
         public void RemoveAt(int index)
