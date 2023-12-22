@@ -13,7 +13,7 @@ MILLEC stores item values in an array; we call it the prime array or Index (the 
 
 MILLEC internally maintains two other sets of a data and a few fields:
 - A bitvector where each bit flags the ACTIVE/INACTIVE (ADDED/REMOVED) status of a corresponding prime array element. This bitvector is the "Map" part of MILLEC.
-- A linked list of holes which is woven directly into the prime array. E.g. Each prime array element that is a hole is used to store an integer which is an index to another hole in the array. This is the "Linked List of Empty Holes" part of MILLEC.
+- A linked list of holes which is woven directly into the prime array. E.g. Each prime array element that is a hole is used to store an integer which is an index to another hole in the array. This is the "Linked List of Empty Cells" part of MILLEC -- "Empty Cell" made a better acronym than Hole :-).
 - An integer field pointing to the most recently created hole (removed item)
 - Item Count
 - Index of First and Last Items (Non-holes)
