@@ -323,15 +323,20 @@ namespace MILLEC
             ref var freeSlot = ref FreeSlot.ReinterpretItemAsFreeSlot(ref removedItem);
 
             freeSlot = FirstFreeSlot;
-
-            var newFreeSlot = new FreeSlot(index);
+            
+            Unsafe.SkipInit(out FreeSlot newFreeSlot);
 
             var newCount = --Count;
 
-            if (newCount == 0)
+            if (newCount != 0)
             {
-                HighestKnownIndex = DEFAULT_HIGHEST_KNOWN_INDEX;
+                newFreeSlot.Next = index;
+            }
+            
+            else
+            {
                 newFreeSlot.Next = -1;
+                HighestKnownIndex = DEFAULT_HIGHEST_KNOWN_INDEX;
             }
 
             FirstFreeSlot = newFreeSlot;
