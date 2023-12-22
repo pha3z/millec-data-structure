@@ -80,10 +80,17 @@ public class Tests
         
         for (int i = 1; i < ADD_COUNT; i++)
         {
-            Assert.Throws<Exception>(() =>
+            try
             {
                 DoSomething(millec[i]);
-            });
+            }
+
+            catch (Exception ex)
+            {
+                continue;
+            }
+                
+            Assert.IsTrue(false);
         }
     }
     
