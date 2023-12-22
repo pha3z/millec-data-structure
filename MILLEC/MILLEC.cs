@@ -75,7 +75,6 @@ namespace MILLEC
         {
             // TODO: This needs to be revisited if we ever impl SIMD
             
-            
             // TODO: Use DivRem intrinsic
             var (quotient, remainder) = Math.DivRem(countOfT, BYTE_BIT_COUNT);
             

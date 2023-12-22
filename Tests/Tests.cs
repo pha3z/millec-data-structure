@@ -27,7 +27,6 @@ public class Tests
         millec.ItemsCount.Should().Be(ADD_COUNT - 1);
     }
     
-    
     [Test]
     public void DeletedSlotsShouldNotBeAccessible()
     {
