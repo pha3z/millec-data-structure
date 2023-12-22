@@ -48,8 +48,10 @@ namespace MILLEC
                 return GC.AllocateArray<AllocateT>(size, shouldAllocateOnPOH);
             }
         }
+
+        public MILLEC(): this(0) { }
         
-        public MILLEC(int size = 0)
+        public MILLEC(int size)
         {
             if (RuntimeHelpers.IsReferenceOrContainsReferences<T>() || sizeof(T) < sizeof(int))
             {
@@ -230,14 +232,16 @@ namespace MILLEC
 
             var oldBitArray = BitVectorsArr;
 
-            var newSize = oldArr.Length * 2;
+            var oldSize = oldArr.Length;
+
+            var newSize = (oldSize == 0) ? 1 : oldSize * 2;
             
             var newArr= ItemsArr = Allocate<T>(newSize, true);
 
             var newBitArray = BitVectorsArr = AllocateBitArray(newSize);
             
             oldArr.AsSpan().CopyTo(newArr);
-            newBitArray.AsSpan().CopyTo(newBitArray);
+            oldBitArray.AsSpan().CopyTo(newBitArray);
             
             // Write the item to writeIndex. Free slots are guaranteed to be exhausted if a resize is required.
             Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(oldArr), writeIndex) = item;
