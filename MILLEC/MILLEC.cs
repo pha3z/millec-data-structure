@@ -307,11 +307,23 @@ namespace MILLEC
 
         public void RemoveAt(int index)
         {
-            var bitArrayInterfacer = new BitVectorsArrayInterfacer(BitVectorsArr);
+            ValidateItemExistsAtIndex(new BitVectorsArrayInterfacer(BitVectorsArr), index, out var bitInterfacer);
             
-            ValidateItemExistsAtIndex(bitArrayInterfacer, index, out var bitInterfacer);
+            var newCount = --Count;
+            
+            Unsafe.SkipInit(out FreeSlot newFreeSlot);
+
+            if (newCount == 0)
+            {
+                goto Empty;
+            }
             
             bitInterfacer.Clear();
+            
+            if (index == HighestKnownIndex)
+            {
+                goto DecrementHighestKnown;
+            }
 
             var itemsArrayInterfacer = new ItemsArrayInterfacer(ItemsArr);
 
@@ -319,24 +331,24 @@ namespace MILLEC
 
             ref var freeSlot = ref FreeSlot.ReinterpretItemAsFreeSlot(ref removedItem);
 
+            // Deleted item's slot now houses previous free slot
             freeSlot = FirstFreeSlot;
             
-            Unsafe.SkipInit(out FreeSlot newFreeSlot);
-
-            var newCount = --Count;
-
-            if (newCount != 0)
-            {
-                newFreeSlot.Next = index;
-            }
+            // We will set the FirstFreeSlot field to current index.
+            newFreeSlot.Next = index;
             
-            else
-            {
-                newFreeSlot.Next = -1;
-                HighestKnownIndex = DEFAULT_HIGHEST_KNOWN_INDEX;
-            }
-
+            WriteFreeSlot:
             FirstFreeSlot = newFreeSlot;
+            return;
+            
+            DecrementHighestKnown: // If we are deleting the last item, just decrement the HighestKnownIndex.
+            HighestKnownIndex--;
+            return;
+            
+            Empty:
+            newFreeSlot.Next = NO_NEXT_SLOT_VALUE;
+            HighestKnownIndex = DEFAULT_HIGHEST_KNOWN_INDEX;
+            goto WriteFreeSlot;
         }
 
         public void Clear()
