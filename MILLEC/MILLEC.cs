@@ -113,11 +113,8 @@ namespace MILLEC
             
             public BitInterfacer(BitVectorsArrayInterfacer bitVectorsArrayInterfacer, int slotIndex)
             {
-                // Indexes are zero-based. 
-                const int DIVISOR = BYTE_BIT_COUNT - 1;
-            
-                // E.x. index 7 -> 7 / 7 -> 0, 8 -> 8 / 7 -> 1, 9 -> 9 / 7 -> 1
-                var index = Math.DivRem(slotIndex, DIVISOR, out VectorIndex);
+                // E.x. index 7 -> 7 / 8 -> Q:0 R:7, 8 -> 8 / 8 -> Q:1 R:0, 9 -> 9 / 8 ->  Q:1 R:1
+                var index = Math.DivRem(slotIndex, BYTE_BIT_COUNT, out VectorIndex);
 
                 Slot = ref Unsafe.Add(ref bitVectorsArrayInterfacer.FirstItem, index);
             }
