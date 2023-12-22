@@ -47,6 +47,12 @@ public class Tests
         millec.ItemsCount.Should().Be(ADD_COUNT - REMOVE_COUNT);
     }
     
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void DoSomething(int item)
+    {
+            
+    }
+    
     [Test]
     public void DeletedSlotsShouldNotBeAccessible()
     {
@@ -81,11 +87,5 @@ public class Tests
         }
 
         return;
-        
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        void DoSomething(int item)
-        {
-            
-        }
     }
 }
