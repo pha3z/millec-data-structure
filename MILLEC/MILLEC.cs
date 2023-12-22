@@ -309,16 +309,18 @@ namespace MILLEC
         {
             ValidateItemExistsAtIndex(new BitVectorsArrayInterfacer(BitVectorsArr), index, out var bitInterfacer);
             
-            var newCount = --Count;
+            var newCount = Count - 1;
             
             Unsafe.SkipInit(out FreeSlot newFreeSlot);
 
             bitInterfacer.Clear();
             
-            if (newCount == 0)
+            if (newCount <= 0)
             {
                 goto Empty;
             }
+
+            Count = newCount;
             
             if (index == HighestKnownIndex)
             {
@@ -351,20 +353,24 @@ namespace MILLEC
             [MethodImpl(MethodImplOptions.NoInlining)]
             void Empty(ref MILLEC<T> @this)
             {
-                // We already clear set bit via bitInterfacer.Clear();
-                // At this point, the BitVectorArr is guaranteed to be all cleared.
-                #if DEBUG
-
-                foreach (var bitVector in @this.BitVectorsArr)
+                // We did not actually set @this.Count ( It is set after the goto statement that leads to this helper. )
+                if (@this.Count == 1)
                 {
-                    if (bitVector != 0)
+                    // We already clear set bit via bitInterfacer.Clear();
+                    // At this point, the BitVectorArr is guaranteed to be all cleared.
+                    #if DEBUG
+
+                    foreach (var bitVector in @this.BitVectorsArr)
                     {
-                        throw new Exception($"nameof{bitVector} not cleared!");
+                        if (bitVector != 0)
+                        {
+                            throw new Exception($"nameof{bitVector} not cleared!");
+                        }
                     }
-                }
                 
-                #endif
-                @this.Clear(false);
+                    #endif
+                    @this.Clear(false);
+                } // Else, it was already empty, do nothing.
             }
         }
 
