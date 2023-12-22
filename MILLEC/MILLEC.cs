@@ -348,7 +348,8 @@ namespace MILLEC
             HighestKnownIndex = DEFAULT_HIGHEST_KNOWN_INDEX;
             BitVectorsArr.AsSpan().Clear();
             
-            // We don't have to clear ItemsArr, as it is not possible for a slot to become "free" without subsequent writes.
+            // We don't have to clear ItemsArr, as it is not possible for a slot to become "free" without
+            // writing to it prior ( Via Add() )
         }
         
         public ref T UnsafeGetFirstItemReference()
