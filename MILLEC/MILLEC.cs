@@ -16,13 +16,18 @@ namespace MILLEC
         {
             return instance.BitVectorsArr;
         }
+        
+        public static int GetHighestKnownIndex<T>(ref this MILLEC<T> instance)
+        {
+            return instance.HighestKnownIndex;
+        }
     }
     
     public unsafe struct MILLEC<T>
     {
         internal T[] ItemsArr;
         internal byte[] BitVectorsArr;
-        private int Count, HighestKnownIndex;
+        internal int Count, HighestKnownIndex;
         private FreeSlot FirstFreeSlot;
 
         public int ItemsCount => Count;
@@ -66,7 +71,7 @@ namespace MILLEC
 
             HighestKnownIndex = DEFAULT_HIGHEST_KNOWN_INDEX;
             
-            FirstFreeSlot = new FreeSlot(NO_NEXT_SLOT_VALUE);
+            FirstFreeSlot = new FreeSlot();
         }
         
         private const int BYTE_BIT_COUNT = 8;
@@ -190,8 +195,10 @@ namespace MILLEC
 
         private struct FreeSlot
         {
-            private int Next;
+            public int Next;
 
+            public FreeSlot(): this(NO_NEXT_SLOT_VALUE) { }
+            
             public FreeSlot(int next)
             {
                 Next = next;
@@ -243,7 +250,7 @@ namespace MILLEC
             oldBitArray.AsSpan().CopyTo(newBitArray);
             
             // Write the item to writeIndex. Free slots are guaranteed to be exhausted if a resize is required.
-            Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(oldArr), writeIndex) = item;
+            Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(newArr), writeIndex) = item;
             
             // Remember to set its corresponding bit.
             new BitInterfacer(new BitVectorsArrayInterfacer(newBitArray), writeIndex).Set();
@@ -257,8 +264,12 @@ namespace MILLEC
             var itemsArr = ItemsArr;
 
             var itemsInterfacer = new ItemsArrayInterfacer(itemsArr);
+
+            var firstFreeSlot = FirstFreeSlot;
             
-            ref var currentFreeSlot = ref FirstFreeSlot.GetNextFreeSlot(itemsInterfacer);
+            ref var currentFreeSlot = ref firstFreeSlot.GetNextFreeSlot(itemsInterfacer);
+
+            ref var writeSlot = ref Unsafe.NullRef<T>();
 
             if (Unsafe.IsNullRef(ref currentFreeSlot))
             {
@@ -270,14 +281,13 @@ namespace MILLEC
                 // This pattern elide bounds.
                 if (writeIndex < itemsArr.Length)
                 {
-                    var bitInterfacer = new BitInterfacer(new BitVectorsArrayInterfacer(BitVectorsArr), writeIndex);
-                    bitInterfacer.Set();
-                    itemsArr[writeIndex] = item;
+                    writeSlot = ref itemsArr[writeIndex];
                 }
 
                 else
                 {
                     ResizeAdd(item);
+                    return;
                 }
             }
 
@@ -285,9 +295,17 @@ namespace MILLEC
             {
                 // Write value of currentFreeSlot to the field
                 FirstFreeSlot = currentFreeSlot;
+                
+                writeSlot = ref currentFreeSlot.ReinterpretAsItem();
 
-                currentFreeSlot.ReinterpretAsItem() = item;
+                writeIndex = firstFreeSlot.Next;
             }
+            
+            writeSlot = item;
+            
+            var bitInterfacer = new BitInterfacer(new BitVectorsArrayInterfacer(BitVectorsArr), writeIndex);
+            
+            bitInterfacer.Set();
         }
 
         public void RemoveAt(int index)
@@ -306,14 +324,17 @@ namespace MILLEC
 
             freeSlot = FirstFreeSlot;
 
-            FirstFreeSlot = new FreeSlot(index);
+            var newFreeSlot = new FreeSlot(index);
 
             var newCount = --Count;
 
             if (newCount == 0)
             {
                 HighestKnownIndex = DEFAULT_HIGHEST_KNOWN_INDEX;
+                newFreeSlot.Next = -1;
             }
+
+            FirstFreeSlot = newFreeSlot;
         }
 
         public void Clear()
