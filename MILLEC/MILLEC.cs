@@ -9,31 +9,32 @@ namespace MILLEC
     {
         public static T[] GetItemsArray<T>(ref this MILLEC<T> instance)
         {
-            return instance.ItemsArr;
+            return instance._itemsArr;
         }
         
         public static byte[] GetBitVectorsArr<T>(ref this MILLEC<T> instance)
         {
-            return instance.BitVectorsArr;
+            return instance._bitVecsArr;
         }
         
         public static int GetHighestKnownIndex<T>(ref this MILLEC<T> instance)
         {
-            return instance.HighestKnownIndex;
+            return instance._greatestItemIndex;
         }
     }
     
     public unsafe struct MILLEC<T>
     {
-        internal T[] ItemsArr;
-        internal byte[] BitVectorsArr;
-        internal int Count, HighestKnownIndex;
+        internal T[] _itemsArr;
+        internal byte[] _bitVecsArr;
+        internal int _count, _greatestItemIndex;
         private FreeSlot FirstFreeSlot;
 
-        public int ItemsCount => Count;
+        public int Count => _count;
+        public int GreatestItemIndex => _greatestItemIndex;
 
         // Works for initial values too! -1 + 1 - 0 = 0
-        public int FreeSlotsCount => HighestKnownIndex + 1 - Count;
+        public int HoleCount => _greatestItemIndex + 1 - _count;
 
         private const int ALIGNMENT = 64, NO_NEXT_SLOT_VALUE = -1, DEFAULT_HIGHEST_KNOWN_INDEX = -1;
 
@@ -66,13 +67,13 @@ namespace MILLEC
                 throw new NotImplementedException("We need to add support for managed Ts");
             }
             
-            ItemsArr = Allocate<T>(size, true);
+            _itemsArr = Allocate<T>(size, true);
 
-            BitVectorsArr = AllocateBitArray(size);
+            _bitVecsArr = AllocateBitArray(size);
 
-            Count = 0;
+            _count = 0;
 
-            HighestKnownIndex = DEFAULT_HIGHEST_KNOWN_INDEX;
+            _greatestItemIndex = DEFAULT_HIGHEST_KNOWN_INDEX;
             
             FirstFreeSlot = new FreeSlot();
         }
@@ -178,7 +179,7 @@ namespace MILLEC
             bitInterfacer = new BitInterfacer(bitVectorsArrayInterfacer, index);
 
             // HighestKnownIndex is guaranteed to be < Length
-            return index <= HighestKnownIndex && bitInterfacer.IsSet;
+            return index <= _greatestItemIndex && bitInterfacer.IsSet;
         }
 
         private void ValidateItemExistsAtIndex(BitVectorsArrayInterfacer bitVectorsArrayInterfacer, int index, out BitInterfacer bitInterfacer)
@@ -204,9 +205,9 @@ namespace MILLEC
         {
             get
             {
-                ValidateItemExistsAtIndex(new BitVectorsArrayInterfacer(BitVectorsArr), index, out _);
+                ValidateItemExistsAtIndex(new BitVectorsArrayInterfacer(_bitVecsArr), index, out _);
                     
-                return ref new ItemsArrayInterfacer(ItemsArr)[index];
+                return ref new ItemsArrayInterfacer(_itemsArr)[index];
             }
         }
 
@@ -249,19 +250,19 @@ namespace MILLEC
         private void ResizeAdd(T item)
         {
             // We incremented Count beforehand
-            var writeIndex = Count - 1;
+            var writeIndex = _count - 1;
             
-            var oldArr = ItemsArr;
+            var oldArr = _itemsArr;
 
-            var oldBitArray = BitVectorsArr;
+            var oldBitArray = _bitVecsArr;
 
             var oldSize = oldArr.Length;
 
             var newSize = (oldSize == 0) ? 1 : oldSize * 2;
             
-            var newArr= ItemsArr = Allocate<T>(newSize, true);
+            var newArr= _itemsArr = Allocate<T>(newSize, true);
 
-            var newBitArray = BitVectorsArr = AllocateBitArray(newSize);
+            var newBitArray = _bitVecsArr = AllocateBitArray(newSize);
             
             oldArr.AsSpan().CopyTo(newArr);
             oldBitArray.AsSpan().CopyTo(newBitArray);
@@ -276,9 +277,9 @@ namespace MILLEC
         public void Add(T item)
         {
             // We take the value of Count before the increment, which is also the writeIndex
-            var writeIndex = Count++;
+            var writeIndex = _count++;
             
-            var itemsArr = ItemsArr;
+            var itemsArr = _itemsArr;
 
             var itemsInterfacer = new ItemsArrayInterfacer(itemsArr);
 
@@ -329,8 +330,8 @@ namespace MILLEC
             if (isNewSlot)
             {
                 // Regardless of need to resize, set HighestKnownIndex to be writeIndex
-                Debug.Assert(writeIndex == HighestKnownIndex + 1);
-                HighestKnownIndex = writeIndex;
+                Debug.Assert(writeIndex == _greatestItemIndex + 1);
+                _greatestItemIndex = writeIndex;
                 
                 if (writeIndex < itemsArr.Length)
                 {
@@ -345,14 +346,14 @@ namespace MILLEC
             
             WriteToSlotAndSetCorrespondingBit:
             slot = item;
-            new BitInterfacer(new BitVectorsArrayInterfacer(BitVectorsArr), writeIndex).Set();
+            new BitInterfacer(new BitVectorsArrayInterfacer(_bitVecsArr), writeIndex).Set();
         }
 
         public void RemoveAt(int index)
         {
-            ValidateItemExistsAtIndex(new BitVectorsArrayInterfacer(BitVectorsArr), index, out var bitInterfacer);
+            ValidateItemExistsAtIndex(new BitVectorsArrayInterfacer(_bitVecsArr), index, out var bitInterfacer);
             
-            var newCount = Count - 1;
+            var newCount = _count - 1;
             
             Unsafe.SkipInit(out FreeSlot newFreeSlot);
 
@@ -363,14 +364,14 @@ namespace MILLEC
                 goto Empty;
             }
 
-            Count = newCount;
+            _count = newCount;
             
-            if (index == HighestKnownIndex)
+            if (index == _greatestItemIndex)
             {
                 goto DecrementHighestKnown;
             }
 
-            var itemsArrayInterfacer = new ItemsArrayInterfacer(ItemsArr);
+            var itemsArrayInterfacer = new ItemsArrayInterfacer(_itemsArr);
 
             ref var removedItem = ref itemsArrayInterfacer[index];
 
@@ -386,7 +387,7 @@ namespace MILLEC
             return;
             
             DecrementHighestKnown: // If we are deleting the last item, just decrement the HighestKnownIndex.
-            HighestKnownIndex = index - 1;
+            _greatestItemIndex = index - 1;
             return;
             
             Empty:
@@ -397,13 +398,13 @@ namespace MILLEC
             void Empty(ref MILLEC<T> @this)
             {
                 // We did not actually set @this.Count ( It is set after the goto statement that leads to this helper. )
-                if (@this.Count == 1)
+                if (@this._count == 1)
                 {
                     // We already clear set bit via bitInterfacer.Clear();
                     // At this point, the BitVectorArr is guaranteed to be all cleared.
                     #if DEBUG
 
-                    foreach (var bitVector in @this.BitVectorsArr)
+                    foreach (var bitVector in @this._bitVecsArr)
                     {
                         if (bitVector != 0)
                         {
@@ -421,9 +422,9 @@ namespace MILLEC
         public void Clear(bool clearBitVectors = true)
         {
             FirstFreeSlot = new FreeSlot();
-            Count = 0;
-            HighestKnownIndex = DEFAULT_HIGHEST_KNOWN_INDEX;
-            BitVectorsArr.AsSpan().Clear();
+            _count = 0;
+            _greatestItemIndex = DEFAULT_HIGHEST_KNOWN_INDEX;
+            _bitVecsArr.AsSpan().Clear();
             
             // We don't have to clear ItemsArr, as it is not possible for a slot to become "free" without
             // writing to it prior ( Via Add() )
@@ -431,12 +432,12 @@ namespace MILLEC
         
         public ref T UnsafeGetFirstItemReference()
         {
-            return ref new ItemsArrayInterfacer(ItemsArr).FirstItem;
+            return ref new ItemsArrayInterfacer(_itemsArr).FirstItem;
         }
         
         public ref T UnsafeGetItemReference(int index)
         {
-            return ref new ItemsArrayInterfacer(ItemsArr)[index];
+            return ref new ItemsArrayInterfacer(_itemsArr)[index];
         }
 
         // ref T instead of ArrayItemsInterfacer, as Enumerator does not store ArrayItemsInterfacer.
@@ -490,7 +491,7 @@ namespace MILLEC
 
         public Enumerator GetEnumerator()
         {
-            return new Enumerator(new ItemsArrayInterfacer(ItemsArr), new BitVectorsArrayInterfacer(BitVectorsArr));
+            return new Enumerator(new ItemsArrayInterfacer(_itemsArr), new BitVectorsArrayInterfacer(_bitVecsArr));
         }
     }
 }

@@ -19,7 +19,7 @@ public class Tests
     public void NewMillecHasZeroItemCount()
     {
         var millec = new MILLEC<int>(5);
-        millec.ItemsCount.Should().Be(0);
+        millec.Count.Should().Be(0);
     }
 
     [Test]
@@ -31,7 +31,7 @@ public class Tests
         for (int i = 0; i < ITEM_COUNT; i++)
         {
             millec.Add(i);
-            millec.ItemsCount.Should().Be(i + 1);
+            millec.Count.Should().Be(i + 1);
         }
     }
     
@@ -44,7 +44,7 @@ public class Tests
         for (int i = 0; i < ITEM_COUNT; i++)
         {
             millec.RemoveAt(i);
-            millec.ItemsCount.Should().Be(ITEM_COUNT - i - 1);
+            millec.Count.Should().Be(ITEM_COUNT - i - 1);
         }        
     }
 
@@ -87,7 +87,7 @@ public class Tests
     {
         var millec = new MILLEC<int>();
 
-        millec.ItemsCount.Should().Be(0);
+        millec.Count.Should().Be(0);
 
         const int ADD_COUNT = 5;
 
@@ -128,7 +128,7 @@ public class Tests
     {
         var millec = new MILLEC<int>();
 
-        millec.ItemsCount.Should().Be(0);
+        millec.Count.Should().Be(0);
 
         const int ADD_COUNT = 5;
 
