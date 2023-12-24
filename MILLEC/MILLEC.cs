@@ -4,10 +4,8 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace MILLEC
-{
-    
-    
-    public unsafe struct MILLEC<T>
+{ 
+    public  unsafe partial struct MILLEC<T>
     {
         internal T[] _itemsArr;
         internal byte[] _bitVecsArr;
@@ -21,6 +19,7 @@ namespace MILLEC
         public int FreeSlotCount => _highestTouchedIndex + 1 - _count;
 
         private const int ALIGNMENT = 64, NO_NEXT_SLOT_VALUE = -1, DEFAULT_HIGHEST_TOUCHED_INDEX = -1;
+        private const int BYTE_BIT_COUNT = 8;
 
         // Allow skipInit to be constant-folded
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -32,14 +31,9 @@ namespace MILLEC
             var shouldAllocateOnPOH = !RuntimeHelpers.IsReferenceOrContainsReferences<T>();
             
             if (skipInit)
-            {
                 return GC.AllocateUninitializedArray<AllocateT>(size, shouldAllocateOnPOH);
-            }
-
             else
-            {
                 return GC.AllocateArray<AllocateT>(size, shouldAllocateOnPOH);
-            }
         }
 
         public MILLEC(): this(0) { }
@@ -52,17 +46,11 @@ namespace MILLEC
             }
             
             _itemsArr = Allocate<T>(size, true);
-
             _bitVecsArr = AllocateBitArray(size);
-
             _count = 0;
-
             _highestTouchedIndex = DEFAULT_HIGHEST_TOUCHED_INDEX;
-            
             _firstFreeSlot = new FreeSlot();
         }
-        
-        private const int BYTE_BIT_COUNT = 8;
         
         public static byte[] AllocateBitArray(int countOfT)
         {
@@ -78,85 +66,7 @@ namespace MILLEC
             return Allocate<byte>(size, false);
         }
         
-        internal readonly ref struct BitVectorsArrayInterfacer
-        {
-            public readonly ref byte FirstItem;
-
-            public BitVectorsArrayInterfacer(byte[] bitVectorsArray)
-            {
-                FirstItem = ref MemoryMarshal.GetArrayDataReference(bitVectorsArray);
-            }
-
-            public ref byte this[int index]
-            {
-                get => ref Unsafe.Add(ref FirstItem, index);
-            }
-        }
-        
-        internal readonly ref struct BitInterfacer
-        {
-            private readonly ref byte Slot;
-
-            private readonly int VectorIndex;
-            
-            public BitInterfacer(BitVectorsArrayInterfacer bitVectorsArrayInterfacer, int slotIndex)
-            {
-                // E.x. index 7 -> 7 / 8 -> Q:0 R:7, 8 -> 8 / 8 -> Q:1 R:0, 9 -> 9 / 8 ->  Q:1 R:1
-                var index = Math.DivRem(slotIndex, BYTE_BIT_COUNT, out VectorIndex);
-
-                Slot = ref Unsafe.Add(ref bitVectorsArrayInterfacer.FirstItem, index);
-            }
-
-            public bool IsWholeByteClear()
-            {
-                return Slot == 0;
-            }
-            
-            public bool IsSet => (Slot & (1 << VectorIndex)) != 0;
-
-            public void Set()
-            {
-                Slot |= unchecked((byte) (1 << VectorIndex));
-            }
-            
-            public void Clear()
-            {
-                Slot &= unchecked((byte) ~(1 << VectorIndex));
-            }
-        }
-        
-        internal readonly ref struct ItemsArrayInterfacer
-        {
-            public readonly ref T FirstItem;
-
-            public ItemsArrayInterfacer(T[] itemsArr)
-            {
-                FirstItem = ref MemoryMarshal.GetArrayDataReference(itemsArr);
-            }
-
-            public ref T this[int index]
-            {
-                get => ref Unsafe.Add(ref FirstItem, index);
-            }
-
-            public ref T GetLastSlotOffsetByOne(T[] itemsArr)
-            {
-                return ref this[itemsArr.Length];
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public ref T GetFirstFreeOrNewSlot(FreeSlot firstFreeSlotFieldValue, ref int newSlotWriteIndex, out bool isNewSlot)
-            {
-                var next = firstFreeSlotFieldValue.Next;
-
-                isNewSlot = next == -1;
-                
-                newSlotWriteIndex = isNewSlot ? newSlotWriteIndex : next;
-
-                return ref this[newSlotWriteIndex];
-            }
-        }
-
+   
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool ItemExistsAtIndex(BitVectorsArrayInterfacer bitVectorsArrayInterfacer, int index, out BitInterfacer bitInterfacer)
         {
@@ -169,12 +79,9 @@ namespace MILLEC
         private void ValidateItemExistsAtIndex(BitVectorsArrayInterfacer bitVectorsArrayInterfacer, int index, out BitInterfacer bitInterfacer)
         {
             if (ItemExistsAtIndex(bitVectorsArrayInterfacer, index, out bitInterfacer))
-            {
                 return;
-            }
 
             Throw();
-
             return;
 
             [MethodImpl(MethodImplOptions.NoInlining)]
@@ -190,62 +97,21 @@ namespace MILLEC
             get
             {
                 ValidateItemExistsAtIndex(new BitVectorsArrayInterfacer(_bitVecsArr), index, out _);
-                    
                 return ref new ItemsArrayInterfacer(_itemsArr)[index];
             }
         }
 
-        internal struct FreeSlot
-        {
-            public int Next;
-
-            public FreeSlot(): this(NO_NEXT_SLOT_VALUE) { }
-            
-            public FreeSlot(int next)
-            {
-                Next = next;
-            }
-
-            public ref FreeSlot GetNextFreeSlot(ItemsArrayInterfacer itemsArrayInterfacer)
-            {
-                var next = Next;
-                
-                if (next != NO_NEXT_SLOT_VALUE)
-                {
-                    return ref Unsafe.As<T, FreeSlot>(ref Unsafe.Add(ref itemsArrayInterfacer.FirstItem, next));
-                }
-
-                return ref Unsafe.NullRef<FreeSlot>();
-            }
-
-            [UnscopedRef]
-            public ref T ReinterpretAsItem()
-            {
-                return ref Unsafe.As<FreeSlot, T>(ref this);
-            }
-
-            public static ref FreeSlot ReinterpretItemAsFreeSlot(ref T item)
-            {
-                return ref Unsafe.As<T, FreeSlot>(ref item);
-            }
-        }
-
+        
         [MethodImpl(MethodImplOptions.NoInlining)] // Don't pollute hot path
         private void ResizeAdd(T item)
         {
             // We incremented Count beforehand
             var writeIndex = _count - 1;
-            
             var oldArr = _itemsArr;
-
             var oldBitArray = _bitVecsArr;
-
             var oldSize = oldArr.Length;
-
             var newSize = (oldSize == 0) ? 1 : oldSize * 2;
-            
             var newArr= _itemsArr = Allocate<T>(newSize, true);
-
             var newBitArray = _bitVecsArr = AllocateBitArray(newSize);
             
             oldArr.AsSpan().CopyTo(newArr);
@@ -262,11 +128,8 @@ namespace MILLEC
         {
             // We take the value of Count before the increment, which is also the writeIndex
             var writeIndex = _count++;
-            
             var itemsArr = _itemsArr;
-
             var itemsInterfacer = new ItemsArrayInterfacer(itemsArr);
-
             var firstFreeSlot = _firstFreeSlot;
 
             // ref var currentFreeSlot = ref firstFreeSlot.GetNextFreeSlot(itemsInterfacer);
@@ -338,27 +201,19 @@ namespace MILLEC
             ValidateItemExistsAtIndex(new BitVectorsArrayInterfacer(_bitVecsArr), index, out var bitInterfacer);
             
             var newCount = _count - 1;
-            
             Unsafe.SkipInit(out FreeSlot newFreeSlot);
-
             bitInterfacer.Clear();
             
             if (newCount <= 0)
-            {
                 goto Empty;
-            }
 
             _count = newCount;
             
             if (index == _highestTouchedIndex)
-            {
                 goto DecrementHighestTouched;
-            }
 
             var itemsArrayInterfacer = new ItemsArrayInterfacer(_itemsArr);
-
             ref var removedItem = ref itemsArrayInterfacer[index];
-
             ref var freeSlot = ref FreeSlot.ReinterpretItemAsFreeSlot(ref removedItem);
 
             // Deleted item's slot now houses previous free slot
@@ -390,9 +245,7 @@ namespace MILLEC
                     foreach (var bitVector in @this._bitVecsArr)
                     {
                         if (bitVector != 0)
-                        {
                             throw new Exception($"nameof{bitVector} not cleared!");
-                        }
                     }
                 
                     #endif
@@ -414,67 +267,13 @@ namespace MILLEC
         }
         
         public ref T UnsafeGetFirstItemReference()
-        {
-            return ref new ItemsArrayInterfacer(_itemsArr).FirstItem;
-        }
+            => ref new ItemsArrayInterfacer(_itemsArr).FirstItem;
         
         public ref T UnsafeGetItemReference(int index)
-        {
-            return ref new ItemsArrayInterfacer(_itemsArr)[index];
-        }
+            => ref new ItemsArrayInterfacer(_itemsArr)[index];
 
         // ref T instead of ArrayItemsInterfacer, as Enumerator does not store ArrayItemsInterfacer.
         private static int IndexOfItemRef(ref T firstItem, ref T item)
-        {
-            return unchecked((int) (Unsafe.ByteOffset(ref firstItem, ref item) / sizeof(T)));
-        }
-
-        public ref struct Enumerator
-        {
-            private readonly ref T FirstItem, LastItem;
-            
-            private ref T CurrentItem;
-
-            // private ref byte CurrentBitVector;
-
-            private readonly BitVectorsArrayInterfacer BitVectorsArrayInterfacer;
-            
-            public ref T Current => ref CurrentItem;
-
-            internal Enumerator(ItemsArrayInterfacer itemsArrayInterfacer, BitVectorsArrayInterfacer bitVectorsArrayInterfacer)
-            {
-                FirstItem = ref itemsArrayInterfacer.FirstItem; 
-                // MoveNext() is always called before the first iteration
-                CurrentItem = ref Unsafe.Subtract(ref FirstItem, 1);
-                // CurrentBitVector = ref bitArrayInterfacer.FirstItem;
-                BitVectorsArrayInterfacer = bitVectorsArrayInterfacer;
-            }
-            
-            public bool MoveNext()
-            {
-                // TODO: Improve performance of this.
-                MoveNext:
-                CurrentItem = ref Unsafe.Add(ref CurrentItem, 1);
-                
-                if (!Unsafe.IsAddressGreaterThan(ref CurrentItem, ref LastItem))
-                {
-                    var currentIndex = IndexOfItemRef(ref FirstItem, ref CurrentItem);
-
-                    if (new BitInterfacer(BitVectorsArrayInterfacer, currentIndex).IsSet)
-                    {
-                        return true;
-                    }
-                    
-                    goto MoveNext;
-                }
-                
-                return false;
-            }
-        }
-
-        public Enumerator GetEnumerator()
-        {
-            return new Enumerator(new ItemsArrayInterfacer(_itemsArr), new BitVectorsArrayInterfacer(_bitVecsArr));
-        }
+            => unchecked((int) (Unsafe.ByteOffset(ref firstItem, ref item) / sizeof(T)));
     }
 }
