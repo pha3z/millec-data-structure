@@ -23,20 +23,20 @@ public class Tests
     }
 
     [Test]
-    public void ItemCountShouldBeValidAfterEveryAddSinceEmpty()
+    public void ItemCountShouldBeValidAfterEveryAdd()
     {
         const int ITEM_COUNT = 5;
         var millec = new MILLEC<int>();
 
         for (int i = 0; i < ITEM_COUNT; i++)
         {
-            millec.Add(i);
+            millec.Add(777);
             millec.Count.Should().Be(i + 1);
         }
     }
     
     [Test]
-    public void ItemCountShouldBeValidAfterEveryRemoveSinceFull()
+    public void ItemCountShouldBeValidAfterEveryRemove()
     {
         const int ITEM_COUNT = 5;
         var millec = NewTestMillec(ITEM_COUNT);
@@ -49,112 +49,71 @@ public class Tests
     }
 
     [Test]
-    [TestCase(new int[] { 0, 1, 2, 3, 4 })]
-    [TestCase(new int[] { 0, 1, 2, 3})]
-    [TestCase(new int[] { 0, 1, 2})]
-    [TestCase(new int[] { 0, 1})]
-    [TestCase(new int[] { 0})]
-    [TestCase(new int[] { 4, 3, 2, 1, 0})]
-    [TestCase(new int[] { 4, 3, 2, 1})]
-    [TestCase(new int[] { 4, 3, 2})]
-    [TestCase(new int[] { 4, 3})]
-    [TestCase(new int[] { 4})]
-    [TestCase(new int[] { 3, 2, 1, 0 })]
-    [TestCase(new int[] { 2, 1, 0 })]
-    [TestCase(new int[] { 1, 0 })]
-    [TestCase(new int[] { 4, 0 })]
-    [TestCase(new int[] { 0, 4 })]
-    public void HolesShouldBeInaccessibleWhenUsingIndexer(int[] removeTheseIndices)
-    {
-        const int ITEM_COUNT = 5;
-        var millec = NewTestMillec(ITEM_COUNT);
+    [TestCase(3, new int[] { 0 })]
+    [TestCase(3, new int[] { 0, 1 })]
+    [TestCase(3, new int[] { 0, 2 })]
+    [TestCase(3, new int[] { 0, 1, 2 })]
+    [TestCase(3, new int[] { 1 })]
+    [TestCase(3, new int[] { 1, 0 })]
+    [TestCase(3, new int[] { 1, 2 })]
+    [TestCase(3, new int[] { 1, 0, 2 })]
+    [TestCase(3, new int[] { 2 })]
+    [TestCase(3, new int[] { 2, 1 })]
+    [TestCase(3, new int[] { 2, 0 })]
+    [TestCase(3, new int[] { 2, 1, 0 })]
 
+    [TestCase(4, new int[] { 0 })]
+    [TestCase(4, new int[] { 0, 1 })]
+    [TestCase(4, new int[] { 0, 2 })]
+    [TestCase(4, new int[] { 0, 1, 2 })]
+    [TestCase(4, new int[] { 1 })]
+    [TestCase(4, new int[] { 1, 0 })]
+    [TestCase(4, new int[] { 1, 2 })]
+    [TestCase(4, new int[] { 1, 0, 2 })]
+    [TestCase(4, new int[] { 2 })]
+    [TestCase(4, new int[] { 2, 1 })]
+    [TestCase(4, new int[] { 2, 0 })]
+    [TestCase(4, new int[] { 2, 1, 0 })]
+    public void AfterRemovingItems_SlotAccessibilityShouldMatchFreeOrUnfreeStateOfSlot(int itemCount, int[] removeTheseIndices)
+    {
+        var millec = NewTestMillec(itemCount);
+        List<int> removedPositions = new List<int>();
         for (int i = 0; i < removeTheseIndices.Length; i++)
         {
             millec.RemoveAt(i);
+            removedPositions.Add(i);
             Assert.Throws<Exception>(() => { int x = millec[i]; });
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private void DoSomething(int item)
-    {
             
-    }
-    
-    [Test]
-    public void DeletedSlotsShouldNotBeAccessible()
-    {
-        var millec = new MILLEC<int>();
-
-        millec.Count.Should().Be(0);
-
-        const int ADD_COUNT = 5;
-
-        for (int i = 0; i < ADD_COUNT; i++)
-        {
-            millec.Add(i);
-        }
-        
-        // We are skipping first index
-        for (int i = 1; i < ADD_COUNT; i++)
-        {
-            millec.RemoveAt(i);
-        }
-        
-        Assert.DoesNotThrow(() =>
-        {
-            millec[0].Should().Be(0);
-        });
-        
-        for (int i = 1; i < ADD_COUNT; i++)
-        {
-            try
+            for(int j = 0; j < itemCount; j++)
             {
-                DoSomething(millec[i]);
+                if (removedPositions.Contains(j))
+                    Assert.Throws<Exception>(() => { int x = millec[j]; });
+                else
+                    Assert.DoesNotThrow(() => { int x = millec[j]; });
             }
-
-            catch (Exception ex)
-            {
-                continue;
-            }
-                
-            Assert.IsTrue(false);
         }
     }
-    
+
     [Test]
-    public void FreeSlotsShouldBePopulated()
+    [TestCase(0)]
+    [TestCase(1)]
+    [TestCase(8)]
+    public void AfterAddingItems_SlotAccessibilityShouldMatchFreeOrUnfreeStateOfSlot(int itemCount)
     {
-        var millec = new MILLEC<int>();
-
-        millec.Count.Should().Be(0);
-
-        const int ADD_COUNT = 5;
-
-        for (int i = 0; i < ADD_COUNT; i++)
+        var millec = NewTestMillec(itemCount);
+        List<int> addedPositions = new List<int>();
+        for (int i = 0; i < itemCount; i++)
         {
-            millec.Add(i);
-        }
-        
-        // Skip first one, as Count == 0 will reset HighestKnownIndex
-        for (int i = 1; i < ADD_COUNT; i++)
-        {
-            millec.RemoveAt(i);
-        }
-        
-        for (int i = 1; i < ADD_COUNT; i++)
-        {
-            millec.Add(i);
-        }
+            millec.Add(777);
+            addedPositions.Add(i);
 
-        millec.GetHighestKnownIndex().Should().Be(ADD_COUNT - 1);
-        
-        for (int i = 0; i < ADD_COUNT; i++)
-        {
-            millec.RemoveAt(i);
+            for (int j = 0; j < millec.Capacity; j++)
+            {
+                if (addedPositions.Contains(j))
+                    Assert.DoesNotThrow(() => { int x = millec[j]; });
+                else
+                    Assert.Throws<Exception>(() => { int x = millec[j]; });
+            }
         }
-        
-        millec.GetHighestKnownIndex().Should().Be(-1);
     }
 }
