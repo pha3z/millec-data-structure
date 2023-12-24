@@ -19,7 +19,7 @@ namespace MILLEC
         
         public static int GetHighestKnownIndex<T>(ref this MILLEC<T> instance)
         {
-            return instance._greatestItemIndex;
+            return instance._highestWarmSlot;
         }
     }
     
@@ -27,14 +27,14 @@ namespace MILLEC
     {
         internal T[] _itemsArr;
         internal byte[] _bitVecsArr;
-        internal int _count, _greatestItemIndex;
-        private FreeSlot FirstFreeSlot;
+        internal int _count, _highestWarmSlot;
+        private FreeSlot _firstFreeSlot;
 
         public int Count => _count;
-        public int GreatestItemIndex => _greatestItemIndex;
+        public int HighestWarmSlot => _highestWarmSlot;
 
         // Works for initial values too! -1 + 1 - 0 = 0
-        public int HoleCount => _greatestItemIndex + 1 - _count;
+        public int FreeSlotCount => _highestWarmSlot + 1 - _count;
 
         private const int ALIGNMENT = 64, NO_NEXT_SLOT_VALUE = -1, DEFAULT_HIGHEST_KNOWN_INDEX = -1;
 
@@ -73,9 +73,9 @@ namespace MILLEC
 
             _count = 0;
 
-            _greatestItemIndex = DEFAULT_HIGHEST_KNOWN_INDEX;
+            _highestWarmSlot = DEFAULT_HIGHEST_KNOWN_INDEX;
             
-            FirstFreeSlot = new FreeSlot();
+            _firstFreeSlot = new FreeSlot();
         }
         
         private const int BYTE_BIT_COUNT = 8;
@@ -179,7 +179,7 @@ namespace MILLEC
             bitInterfacer = new BitInterfacer(bitVectorsArrayInterfacer, index);
 
             // HighestKnownIndex is guaranteed to be < Length
-            return index <= _greatestItemIndex && bitInterfacer.IsSet;
+            return index <= _highestWarmSlot && bitInterfacer.IsSet;
         }
 
         private void ValidateItemExistsAtIndex(BitVectorsArrayInterfacer bitVectorsArrayInterfacer, int index, out BitInterfacer bitInterfacer)
@@ -283,7 +283,7 @@ namespace MILLEC
 
             var itemsInterfacer = new ItemsArrayInterfacer(itemsArr);
 
-            var firstFreeSlot = FirstFreeSlot;
+            var firstFreeSlot = _firstFreeSlot;
 
             // ref var currentFreeSlot = ref firstFreeSlot.GetNextFreeSlot(itemsInterfacer);
             //
@@ -330,8 +330,8 @@ namespace MILLEC
             if (isNewSlot)
             {
                 // Regardless of need to resize, set HighestKnownIndex to be writeIndex
-                Debug.Assert(writeIndex == _greatestItemIndex + 1);
-                _greatestItemIndex = writeIndex;
+                Debug.Assert(writeIndex == _highestWarmSlot + 1);
+                _highestWarmSlot = writeIndex;
                 
                 if (writeIndex < itemsArr.Length)
                 {
@@ -342,7 +342,7 @@ namespace MILLEC
                 return;
             }
 
-            FirstFreeSlot = FreeSlot.ReinterpretItemAsFreeSlot(ref slot);
+            _firstFreeSlot = FreeSlot.ReinterpretItemAsFreeSlot(ref slot);
             
             WriteToSlotAndSetCorrespondingBit:
             slot = item;
@@ -366,7 +366,7 @@ namespace MILLEC
 
             _count = newCount;
             
-            if (index == _greatestItemIndex)
+            if (index == _highestWarmSlot)
             {
                 goto DecrementHighestKnown;
             }
@@ -378,16 +378,16 @@ namespace MILLEC
             ref var freeSlot = ref FreeSlot.ReinterpretItemAsFreeSlot(ref removedItem);
 
             // Deleted item's slot now houses previous free slot
-            freeSlot = FirstFreeSlot;
+            freeSlot = _firstFreeSlot;
             
             // We will set the FirstFreeSlot field to current index.
             newFreeSlot.Next = index;
             
-            FirstFreeSlot = newFreeSlot;
+            _firstFreeSlot = newFreeSlot;
             return;
             
             DecrementHighestKnown: // If we are deleting the last item, just decrement the HighestKnownIndex.
-            _greatestItemIndex = index - 1;
+            _highestWarmSlot = index - 1;
             return;
             
             Empty:
@@ -421,9 +421,9 @@ namespace MILLEC
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear(bool clearBitVectors = true)
         {
-            FirstFreeSlot = new FreeSlot();
+            _firstFreeSlot = new FreeSlot();
             _count = 0;
-            _greatestItemIndex = DEFAULT_HIGHEST_KNOWN_INDEX;
+            _highestWarmSlot = DEFAULT_HIGHEST_KNOWN_INDEX;
             _bitVecsArr.AsSpan().Clear();
             
             // We don't have to clear ItemsArr, as it is not possible for a slot to become "free" without
