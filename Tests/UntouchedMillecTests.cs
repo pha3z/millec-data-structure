@@ -24,4 +24,26 @@ public class UntouchedMillecTests
         for (int i = 0; i < capacity; i++)
             Assert.Throws<Exception>(() => { int x = millec[i]; });
     }
+
+    [Test]
+    [TestCase(0)]
+    [TestCase(1)]
+    [TestCase(8)]
+    public void ByRefEnumerationReturnsZeroItems(int capacity)
+    {
+        var millec = new MILLEC<int>(capacity);
+        foreach(ref var x in  millec)
+            throw new Exception("This exception should not occur because there are no items to enumerator.");
+    }
+
+    [Test]
+    [TestCase(0)]
+    [TestCase(1)]
+    [TestCase(8)]
+    public void IndexEnumerationReturnsZeroItems(int capacity)
+    {
+        var millec = new MILLEC<int>(capacity);
+        foreach (int idx in millec)
+            throw new Exception("This exception should not occur because there are no items to enumerator.");
+    }
 }

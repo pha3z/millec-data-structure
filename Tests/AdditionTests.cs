@@ -27,7 +27,7 @@ public class AdditionTests
     [TestCase(0, 8)]
     [TestCase(1, 8)]
     [TestCase(8, 8)]
-    public void AfterAddimgItems_IndexedAccessibilityMatchesAvailabilityOfSlot(int itemCount, int capacity)
+    public void AfterAddingItems_IndexedAccessibilityMatchesAvailabilityOfSlot(int itemCount, int capacity)
     {
         var millec = new MILLEC<int>(8);
         List<int> addedPositions = new List<int>();
@@ -46,5 +46,47 @@ public class AdditionTests
         }
     }
 
+    [Test]
+    [TestCase(0, 1)]
+    [TestCase(1, 1)]
+    [TestCase(0, 8)]
+    [TestCase(1, 8)]
+    [TestCase(8, 8)]
+    public void AfterAddingItems_IterationByRefReturnsCorrectValue(int itemCount, int capacity)
+    {
+        var millec = new MILLEC<int>(capacity);
+        for (int i = 0; i < itemCount; i++)
+        {
+            millec.Add(777 + i);
 
+            int j = 0;
+            foreach(ref var x in millec)
+            {
+                x.Should().Be(777 + j);
+                j++;
+            }
+        }
+    }
+
+    [Test]
+    [TestCase(0, 1)]
+    [TestCase(1, 1)]
+    [TestCase(0, 8)]
+    [TestCase(1, 8)]
+    [TestCase(8, 8)]
+    public void AfterAddingItems_IterationByIndexReturnsCorrectValue(int itemCount, int capacity)
+    {
+        var millec = new MILLEC<int>(capacity);
+        for (int i = 0; i < itemCount; i++)
+        {
+            millec.Add(777 + i);
+
+            int j = 0;
+            foreach (int idx in millec)
+            {
+                millec[idx].Should().Be(777 + j);
+                j++;
+            }
+        }
+    }
 }
