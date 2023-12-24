@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 using FluentAssertions;
 using MILLEC;
 
-namespace Tests;
+namespace Tests.Tests;
 
 public class AdditionTests
 {
@@ -20,7 +20,7 @@ public class AdditionTests
             millec.Count.Should().Be(i + 1);
         }
     }
-    
+
     [Test]
     [TestCase(0, 1)]
     [TestCase(1, 1)]
@@ -60,7 +60,7 @@ public class AdditionTests
             millec.Add(777 + i);
 
             int j = 0;
-            foreach(ref var x in millec)
+            foreach (ref var x in millec)
             {
                 x.Should().Be(777 + j);
                 j++;

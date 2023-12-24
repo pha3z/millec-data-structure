@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 using FluentAssertions;
 using MILLEC;
 
-namespace Tests;
+namespace Tests.Tests;
 
 public class UntouchedMillecTests
 {
@@ -10,9 +10,9 @@ public class UntouchedMillecTests
     public void NewMillecHasZeroItemCount()
     {
         var millec = new MILLEC<int>(5);
-        millec.Count.Should().Be(0);    
+        millec.Count.Should().Be(0);
     }
-    
+
     [Test]
     [TestCase(0)]
     [TestCase(1)]
@@ -32,7 +32,7 @@ public class UntouchedMillecTests
     public void ByRefEnumerationReturnsZeroItems(int capacity)
     {
         var millec = new MILLEC<int>(capacity);
-        foreach(ref var x in  millec)
+        foreach (ref var x in millec)
             throw new Exception("This exception should not occur because there are no items to enumerator.");
     }
 

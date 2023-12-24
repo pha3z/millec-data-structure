@@ -1,8 +1,9 @@
 using System.Runtime.CompilerServices;
 using FluentAssertions;
 using MILLEC;
+using Tests.Data;
 
-namespace Tests;
+namespace Tests.Tests;
 
 public class RemovalTests
 {
@@ -56,8 +57,8 @@ public class RemovalTests
             millec.RemoveAt(i);
             removedPositions.Add(i);
             Assert.Throws<Exception>(() => { int x = millec[i]; });
-            
-            for(int j = 0; j < itemCount; j++)
+
+            for (int j = 0; j < itemCount; j++)
             {
                 if (removedPositions.Contains(j))
                     Assert.Throws<Exception>(() => { int x = millec[j]; });
@@ -142,11 +143,11 @@ public class RemovalTests
             removedPositions.Add(i);
 
             int j = 0;
-            foreach(ref var x in millec)
+            foreach (ref var x in millec)
             {
                 if (!removedPositions.Contains(j))
                     x.Should().Be(777 + j);
-                    
+
                 j++;
             }
         }
