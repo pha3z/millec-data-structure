@@ -23,6 +23,11 @@ Since we have revised terminology and begun investigating literature, we should 
 - biflist -- bitmapped index with free list
 - baflist -- bitmapped array and free list
 
+## Gradual Data Compaction Proposal
+We could achieve gradual data compaction by adding new items to free slots toward the front of the array. In order to achieve this we could use multiple free lists instead of only a single free list. Specifically, we could have a free list for free slots in the front half of the array and a free list for free slots in the second half of the array -- or we could divide the array into thirds and have front, middle, and back free lists.
+The cost to remove would still be O(1).  All we'd have to do is add fields to track the head of each free list.
+When adding new items, we'd first check for free slots in the first list, then the second, and optionally the third.
+
 ## Use this data structure when:
 You want to store items (especially structs) in an indexable data structure (e.g. an array), and you need management of free slots (removed items) so you can iterate items and add/remove items. In other words, this structure lets you:
 - Look up items by integer index, random access O(1)
