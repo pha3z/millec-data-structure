@@ -53,8 +53,22 @@ When an item is removed, the element value is altered to store index to the most
 The corresponding bit is flipped off.
 
 ## Iteration
-Exact implementation is prone to change at this point in development.  However the general plan is to leverage the bit array for hyper fast iteration.  SIMD instructions are used to check chunks of bits so that blocks of free slots may be skipped. For non-empty blocks, each bit is checked. Non-empty bits correspond to prime array items.
+SIMD instructions are used to check chunks of bits so that chunks of free slots may be skipped. For non-empty chunk, each bit is checked to facilitate item iteration.
 
-We want users to be able to iterate using:
-foreach (ref var ptr in elements) {}
-foreach (int index in elements) {}
+We support:
+foreach (ref var item in millec) {}
+foreach (int itemIndex in millec) {}
+
+Both enumerators skip free slots and return all items.
+
+## Unit Tests
+We test three behaviors presently:
+- item count
+- indexer access/error
+- foreach byref enumeration
+- foreach index enumeration
+
+These tests cover 
+- item additions
+- item removals
+- untouched (declared but with no items added) 
