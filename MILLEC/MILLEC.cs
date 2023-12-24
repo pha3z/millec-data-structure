@@ -19,7 +19,7 @@ namespace MILLEC
         
         public static int GetHighestKnownIndex<T>(ref this MILLEC<T> instance)
         {
-            return instance._highestWarmSlot;
+            return instance._highestTouchedIndex;
         }
     }
     
@@ -27,14 +27,14 @@ namespace MILLEC
     {
         internal T[] _itemsArr;
         internal byte[] _bitVecsArr;
-        internal int _count, _highestWarmSlot;
+        internal int _count, _highestTouchedIndex;
         private FreeSlot _firstFreeSlot;
 
         public int Count => _count;
-        public int HighestWarmSlot => _highestWarmSlot;
+        public int Capacity => _itemsArr.Length;
 
         // Works for initial values too! -1 + 1 - 0 = 0
-        public int FreeSlotCount => _highestWarmSlot + 1 - _count;
+        public int FreeSlotCount => _highestTouchedIndex + 1 - _count;
 
         private const int ALIGNMENT = 64, NO_NEXT_SLOT_VALUE = -1, DEFAULT_HIGHEST_KNOWN_INDEX = -1;
 
@@ -73,7 +73,7 @@ namespace MILLEC
 
             _count = 0;
 
-            _highestWarmSlot = DEFAULT_HIGHEST_KNOWN_INDEX;
+            _highestTouchedIndex = DEFAULT_HIGHEST_KNOWN_INDEX;
             
             _firstFreeSlot = new FreeSlot();
         }
@@ -179,7 +179,7 @@ namespace MILLEC
             bitInterfacer = new BitInterfacer(bitVectorsArrayInterfacer, index);
 
             // HighestKnownIndex is guaranteed to be < Length
-            return index <= _highestWarmSlot && bitInterfacer.IsSet;
+            return index <= _highestTouchedIndex && bitInterfacer.IsSet;
         }
 
         private void ValidateItemExistsAtIndex(BitVectorsArrayInterfacer bitVectorsArrayInterfacer, int index, out BitInterfacer bitInterfacer)
@@ -330,8 +330,8 @@ namespace MILLEC
             if (isNewSlot)
             {
                 // Regardless of need to resize, set HighestKnownIndex to be writeIndex
-                Debug.Assert(writeIndex == _highestWarmSlot + 1);
-                _highestWarmSlot = writeIndex;
+                Debug.Assert(writeIndex == _highestTouchedIndex + 1);
+                _highestTouchedIndex = writeIndex;
                 
                 if (writeIndex < itemsArr.Length)
                 {
@@ -366,7 +366,7 @@ namespace MILLEC
 
             _count = newCount;
             
-            if (index == _highestWarmSlot)
+            if (index == _highestTouchedIndex)
             {
                 goto DecrementHighestKnown;
             }
@@ -387,7 +387,7 @@ namespace MILLEC
             return;
             
             DecrementHighestKnown: // If we are deleting the last item, just decrement the HighestKnownIndex.
-            _highestWarmSlot = index - 1;
+            _highestTouchedIndex = index - 1;
             return;
             
             Empty:
@@ -423,7 +423,7 @@ namespace MILLEC
         {
             _firstFreeSlot = new FreeSlot();
             _count = 0;
-            _highestWarmSlot = DEFAULT_HIGHEST_KNOWN_INDEX;
+            _highestTouchedIndex = DEFAULT_HIGHEST_KNOWN_INDEX;
             _bitVecsArr.AsSpan().Clear();
             
             // We don't have to clear ItemsArr, as it is not possible for a slot to become "free" without
