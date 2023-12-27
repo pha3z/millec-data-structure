@@ -29,6 +29,17 @@ public class UntouchedMillecTests
     [TestCase(0)]
     [TestCase(1)]
     [TestCase(8)]
+    public void IndexedAccessOutOfBoundsShouldError(int capacity)
+    {
+        var millec = new MILLEC<int>(capacity);
+        Assert.Throws<Exception>(() => { int x = millec[-1]; });
+        Assert.Throws<Exception>(() => { int x = millec[capacity]; });
+    }
+
+    [Test]
+    [TestCase(0)]
+    [TestCase(1)]
+    [TestCase(8)]
     public void ByRefEnumerationReturnsZeroItems(int capacity)
     {
         var millec = new MILLEC<int>(capacity);
