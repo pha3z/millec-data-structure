@@ -130,7 +130,7 @@ public class RemovalTests
     [TestCase(4, new int[] { 2, 1 })]
     [TestCase(4, new int[] { 2, 0 })]
     [TestCase(4, new int[] { 2, 1, 0 })]
-    public void AfterRemovingItems_IterationByRefReturnsCorrectValue(int itemCount, int[] removeTheseIndices)
+    public void AfterRemovingItems_EnumerationByRefReturnsCorrectValueForEachRemainingItem(int itemCount, int[] removeTheseIndices)
     {
         var millec = new MILLEC<int>(size: 8);
         for (int i = 0; i < itemCount; i++)
@@ -179,7 +179,7 @@ public class RemovalTests
     [TestCase(4, new int[] { 2, 1 })]
     [TestCase(4, new int[] { 2, 0 })]
     [TestCase(4, new int[] { 2, 1, 0 })]
-    public void AfterRemovingItems_IterationByIndexReturnsCorrectValue(int itemCount, int[] removeTheseIndices)
+    public void AfterRemovingItems_EnumerationOfIndicesReturnsCorrectValueForEachRemainingItemIndex(int itemCount, int[] removeTheseIndices)
     {
         var millec = new MILLEC<int>(size: 8);
         for (int i = 0; i < itemCount; i++)
@@ -191,8 +191,10 @@ public class RemovalTests
             millec.RemoveAt(i);
             removedPositions.Add(i);
 
+            //Enumerate millec item indices and confirm indexer returns expected item value.
+            //We make use of 'j', because j represents known values from millec.Add() loop
             int j = 0;
-            foreach (int idx in millec)
+            foreach (int idx in millec.GetIndicesEnumerator())
             {
                 if (!removedPositions.Contains(j))
                     millec[idx].Should().Be(777 + j);

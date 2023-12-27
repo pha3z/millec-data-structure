@@ -27,7 +27,7 @@ public class AdditionTests
     [TestCase(0, 8)]
     [TestCase(1, 8)]
     [TestCase(8, 8)]
-    public void AfterAddingItems_IndexedAccessibilityMatchesAvailabilityOfSlot(int itemCount, int capacity)
+    public void AfterAddingItems_IndexorAccessibilityMatchesAvailabilityOfSlot(int itemCount, int capacity)
     {
         var millec = new MILLEC<int>(8);
         List<int> addedPositions = new List<int>();
@@ -52,7 +52,7 @@ public class AdditionTests
     [TestCase(0, 8)]
     [TestCase(1, 8)]
     [TestCase(8, 8)]
-    public void AfterAddingItems_IterationByRefReturnsCorrectValue(int itemCount, int capacity)
+    public void AfterAddingItems_EnumerationByRefReturnsCorrectValueForEachRemainingItem(int itemCount, int capacity)
     {
         var millec = new MILLEC<int>(capacity);
         for (int i = 0; i < itemCount; i++)
@@ -74,15 +74,17 @@ public class AdditionTests
     [TestCase(0, 8)]
     [TestCase(1, 8)]
     [TestCase(8, 8)]
-    public void AfterAddingItems_IterationByIndexReturnsCorrectValue(int itemCount, int capacity)
+    public void AfterAddingItems_EnumerationOfIndicesReturnsCorrectValueForEachRemainingItemIndex(int itemCount, int capacity)
     {
         var millec = new MILLEC<int>(capacity);
         for (int i = 0; i < itemCount; i++)
         {
             millec.Add(777 + i);
 
+            //Enumerate millec item indices and confirm indexer returns expected item value.
+            //We make use of 'j', because j represents known values from millec.Add() loop
             int j = 0;
-            foreach (int idx in millec)
+            foreach (int idx in millec.GetIndicesEnumerator())
             {
                 millec[idx].Should().Be(777 + j);
                 j++;
